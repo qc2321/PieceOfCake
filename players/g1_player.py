@@ -9,6 +9,9 @@ import logging
 
 import constants
 
+ANGLE = 33
+STARTING_POS = 0.7
+
 def sorted_assignment(R, V):
     assignment = []  
     # list of indices of polygons sorted by area
@@ -83,13 +86,19 @@ class Player:
         self.EASY_LEN_BOUND = 23.507
         self.num_requests_cut = 0
         self.knife_pos = []
+    
 
     def get_starting_pos(self, requests):
         area = sum(requests) * 1.05
         h = np.sqrt(area / 1.6)
         w = h * 1.6
-        return [0, round(h * (1/11), 2)]
-        # TODO: Actual logic
+        return [0, round(h * STARTING_POS, 2)]
+
+    def distance_to_edge(self, cur_pos, cake_width, cake_len):
+        x, y = cur_pos
+        dx = (cake_width - x) if np.cos(self.angle) > 0 else x
+        dy = (cake_len - y) if np.sin(self.angle) > 0 else y
+        return min(dx / abs(np.cos(self.angle)), dy / abs(np.sin(self.angle)))
 
     
 
@@ -254,91 +263,30 @@ class Player:
         else:
             '''[CASE] Rhombus Cutting.'''
             if turn_number == 1:
-                self.angle = np.radians(17)
-                # self.angle = 10
+                self.angle = np.radians(ANGLE)
                 starting_pos = self.get_starting_pos(requests)
                 self.knife_pos.append(starting_pos)
                 return constants.INIT, starting_pos
                 
             if self.num_requests_cut < num_requests:
-                # Left side
-                if cur_pos[0] == 0:
-                    # Right/Top -> Left -> Down
-                    if current_percept.turn_number > 2 and (
-                        self.knife_pos[-2][1] == 0 or (self.knife_pos[-2][0] == cake_width and self.knife_pos[-3][1] == 0)):
-                        l = (cake_len - cur_pos[1]) / np.tan(self.angle)
-                        if l > cake_width:
-                            x = cake_width
-                            y = cake_len - ((l - cake_width) * np.tan(self.angle))
-                        else:
-                            x = l
-                            y = cake_len
+                x, y = cur_pos
+                distance = self.distance_to_edge(cur_pos, cake_width, cake_len)
+                x += np.cos(self.angle) * distance
+                y += np.sin(self.angle) * distance
 
-                    # Bottom -> Left -> Up
-                    else:
-                        l = cur_pos[1] / np.tan(self.angle)
-                        if l > cake_width:
-                            x = cake_width
-                            y = (l - cake_width) * np.tan(self.angle)
-                        else:
-                            x = l
-                            y = 0
-
-                # Right side
-                elif cur_pos[0] == cake_width:
-                    # Left/Down -> Right -> Up
-                    if self.knife_pos[-2][0] == 0 or self.knife_pos[-2][1] == cake_len:
-                        l = cur_pos[1] / np.tan(self.angle)
-                        if l > cake_width:
-                            x = 0
-                            y = np.tan(self.angle) * (l - cake_width)
-                        else:
-                            x = cake_width - l
-                            y = 0
-                    # Top -> Right -> Down
-                    else:
-                        l = (cake_len - cur_pos[1]) / np.tan(self.angle)
-                        if l > cake_width:
-                            x = 0
-                            y = cake_len - (np.tan(self.angle) * (l - cake_width))
-                        else:
-                            x = cake_width - l
-                            y = cake_len
-                    # self.knife_pos[-2][1] / cake_width - cur_pos[0]       
-
-                # Top
-                elif cur_pos[1] == 0:
-                    # This only works now if starting from left/right
-                    l = (cake_width - cur_pos[1]) * np.tan(self.angle)
-                    if l > cake_len:
-                        x = cake_width - ((l - cake_len) * np.tan(self.angle))
-                        y = cake_len
-                    else:
-                        # Left -> Right
-                        if self.knife_pos[-2][0] == 0 or (self.knife_pos[-2][1] == cake_len and self.knife_pos[-3][0] == cake_len):
-                            x = cake_width
-                            y = np.tan(self.angle) * (cake_width - cur_pos[0])
-                        # Right -> Left
-                        else:
-                            x = 0
-                            y = np.tan(self.angle) * cur_pos[0]
-                
+                # Check for boundary collisions and adjust angle
+                # Left
+                if x <= 0:  
+                    self.angle = np.pi - self.angle
+                # Right
+                elif x >= cake_width:
+                    self.angle = np.pi - self.angle
                 # Bottom
-                else:
-                    # This only works now if starting from left/right
-                    l = cur_pos[1] * np.tan(self.angle)
-                    if l > cake_len:
-                        x = (l - cake_len) * np.tan(self.angle)
-                        y = 0
-                    else:
-                        # Left -> Right
-                        if self.knife_pos[-2][0] == 0 or (self.knife_pos[-2][1] == 0 and self.knife_pos[-3][0] == 0):
-                            x = cake_width
-                            y = cake_len - (np.tan(self.angle) * (cake_width - cur_pos[0]))
-                        # Right -> Left
-                        else:
-                            x = 0
-                            y = cake_len - (np.tan(self.angle) * cur_pos[0])
+                elif y <= 0:  
+                    self.angle = -self.angle
+                # Top
+                elif y >= cake_len:
+                    self.angle = -self.angle
                 
                 next_knife_pos = [round(x, 2), round(y, 2)]
                 self.knife_pos.append(next_knife_pos)
