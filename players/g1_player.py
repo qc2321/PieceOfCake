@@ -15,6 +15,7 @@ Constants
 MIN_CUT_INCREMENT = 0.01
 EASY_LEN_BOUND = 23.507
 MIN_TOLERANCE = 5
+ALT_TOLERANCE = 10
 
 """
 GLOBAL FUNCTIONS
@@ -426,14 +427,23 @@ class Player:
         while len(unassigned_requests) >= m and i <= len(unassigned_requests) - m:
             # find m requests within tolerance from their mean
             group = []
-            group_mean = round(sum(unassigned_requests[i:i+m]) / m, 2)
-            for j in range(i, i+m):
-                if abs(unassigned_requests[j] - group_mean) / unassigned_requests[j] * 100 <= adj_tolerance:
-                    group.append(unassigned_requests[j])
+            tol_ranges = [(unassigned_requests[j] * (1 - adj_tolerance / 100),
+                           unassigned_requests[j] * (1 + adj_tolerance / 100)) for j in range(i, i+m)]
+            if len(tol_ranges) == m:
+                lower_bound = max([r[0] for r in tol_ranges])
+                upper_bound = min([r[1] for r in tol_ranges])
+                if lower_bound <= upper_bound:
+                    group = [unassigned_requests[j] for j in range(i, i+m)]
+
+            # group_mean = round(sum(unassigned_requests[i:i+m]) / m, 2)
+            # for j in range(i, i+m):
+                # if abs(unassigned_requests[j] - group_mean) / unassigned_requests[j] * 100 <= adj_tolerance:
+                #     group.append(unassigned_requests[j])
             # make verticle cut to serve rectangular pieces of similar size
-            if len(group) == m:
+            # if len(group) == m:
+            if group:
                 cur_pos = self.knife_pos[-1]
-                width = round(m * group_mean / self.cake_len, 2)
+                width = round(m * lower_bound / self.cake_len, 2)
                 y_dest = 0 if cur_pos[1] == 0 else self.cake_len
                 interim_pos = self.traverse_borders(cur_pos, [cur_pos[0]+width, y_dest])
                 vert_cut = (interim_pos[0], interim_pos[1], interim_pos[0], self.cake_len-y_dest)
@@ -707,8 +717,8 @@ class Player:
                         unassigned_requests = requests.copy()
 
                         self.divide_horizontally()
-                        self.make_rectangles(unassigned_requests, 10)
-                        self.make_triangles(unassigned_requests, 10)
+                        self.make_rectangles(unassigned_requests, ALT_TOLERANCE)
+                        self.make_triangles(unassigned_requests, ALT_TOLERANCE)
                         
                         # add fake requests, if needed
                         if len(unassigned_requests) % self.num_horizontal != 0:
