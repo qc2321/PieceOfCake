@@ -1,5 +1,6 @@
 import argparse
 from piece_of_cake_game import PieceOfCakeGame
+import tkinter as tk
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -22,6 +23,6 @@ if __name__ == '__main__':
         if args.log_path == "log":
             args.log_path = "results.log"
 
-    root = None
+    root = tk.Tk()
     app = PieceOfCakeGame(args, root)
 
