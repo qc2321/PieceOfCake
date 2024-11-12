@@ -16,6 +16,7 @@ MIN_CUT_INCREMENT = 0.01
 EASY_LEN_BOUND = 23.507
 MIN_TOLERANCE = 5
 ALT_TOLERANCE = 10
+EXTRA_CAKE = 0.05
 
 """
 GLOBAL FUNCTIONS
@@ -678,7 +679,7 @@ class Player:
             if turn_number == 1:
                 return constants.INIT, [0,0]
             elif self.num_requests_cut < num_requests:
-                extra_area = 0.05 * requests[0]
+                extra_area = EXTRA_CAKE * requests[0]
                 extra_base = round(2 * extra_area / self.cake_len, 2)
                 self.num_requests_cut += 1
                 return constants.CUT, [extra_base, self.cake_len]
@@ -707,7 +708,7 @@ class Player:
                             # when knife goes over the cake width
                             if next_x > self.cake_width:
                                 next_x = self.cake_width
-                                next_y = round(2 * cake_area * 0.05 / (self.cake_width - self.knife_pos[-1][0]), 2)
+                                next_y = round(2 * cake_area * EXTRA_CAKE / (self.cake_width - self.knife_pos[-1][0]), 2)
                             next_knife_pos = [next_x, next_y]
 
                         self.knife_pos.append(next_knife_pos)
@@ -720,7 +721,7 @@ class Player:
                         # when knife goes over the cake width
                         if next_x > self.cake_width:
                             next_x = self.cake_width
-                            next_y = round(self.cake_len - 2 * cake_area * 0.05 / (self.cake_width - self.knife_pos[-1][0]), 2)
+                            next_y = round(self.cake_len - 2 * cake_area * EXTRA_CAKE / (self.cake_width - self.knife_pos[-1][0]), 2)
                         next_knife_pos = [next_x, next_y]
                         self.knife_pos.append(next_knife_pos)
                         self.num_requests_cut += 1
